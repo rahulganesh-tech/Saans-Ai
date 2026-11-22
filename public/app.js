@@ -17,11 +17,36 @@ const VULNERABLE_BUDGET_MULTIPLIER = 0.5;
 const MIN_BUDGET_MINUTES = 5;
 
 // ---------- Sample / demo data (works with zero API key) ----------
-const DEMO_INPUT = {
-  city: "Delhi",
-  aqiBand: "Very Poor",
-  household: ["School-age children", "Elderly member"],
-  description: "Kids have school in the morning, I usually jog at 7am, and we have a market trip planned for the evening.",
+const SCENARIOS = {
+  priya: {
+    city: "Delhi",
+    aqiBand: "Severe",
+    household: ["School-age children", "Elderly member"],
+    description: "Kids have school in the morning, I usually jog at 7am, and we have a market trip planned for the evening.",
+  },
+  rohan: {
+    city: "Mumbai",
+    aqiBand: "Moderate",
+    household: ["Asthma or respiratory condition"],
+    description: "Daily office commute on two-wheeler and evening gym or outdoor walk.",
+  },
+  ananya: {
+    city: "Bengaluru",
+    aqiBand: "Satisfactory",
+    household: ["Infant or toddler"],
+    description: "Morning stroller walk with baby, grocery shopping on foot, evening terrace playtime.",
+  },
+};
+
+const DEMO_INPUT = SCENARIOS.priya;
+
+const AQI_ADVISORIES = {
+  Good: "CPCB 0–50: Minimal impact. Safe for all outdoor activities and natural ventilation.",
+  Satisfactory: "CPCB 51–100: Minor breathing discomfort for sensitive individuals on prolonged exertion.",
+  Moderate: "CPCB 101–200: Breathing discomfort for children, elderly, and people with lungs or heart issues.",
+  Poor: "CPCB 201–300: Breathing discomfort to most people on prolonged exposure. Limit heavy workouts.",
+  "Very Poor": "CPCB 301–400: Respiratory illness risk. Keep vulnerable members indoors and close windows.",
+  Severe: "CPCB 401–500: Health emergency. Affects healthy people; serious risk for vulnerable members.",
 };
 
 const DEMO_PLAN = {
@@ -52,8 +77,40 @@ let currentAqiBand = "Moderate";
 let currentHousehold = [];
 let budgetTotal = 0;
 let budgetUsed = 0;
+let activityHistory = [];
+let lastRenderedPlan = null;
 
 const $ = (id) => document.getElementById(id);
+
+function showToast(message) {
+  const toast = $("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2800);
+}
+
+function updateAqiAdvisory(band) {
+  const adv = $("aqiAdvisory");
+  if (!adv) return;
+  adv.className = "aqi-advisory " + band.replace(/\s+/g, "-");
+  adv.textContent = AQI_ADVISORIES[band] || "";
+}
+
+function applyScenario(key) {
+  const sc = SCENARIOS[key];
+  if (!sc) return;
+  $("cityInput").value = sc.city;
+  $("aqiSelect").value = sc.aqiBand;
+  document.querySelectorAll(".chip[data-flag]").forEach((c) => {
+    c.setAttribute("aria-pressed", String(sc.household.includes(c.dataset.flag)));
+  });
+  $("descInput").value = sc.description;
+  document.querySelectorAll(".preset-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.scenario === key);
+  });
+  updateAqiAdvisory(sc.aqiBand);
+}
 
 /**
  * Computes today's deterministic safe-outdoor-time budget in minutes from
@@ -179,6 +236,7 @@ async function generatePlan(useDemo) {
  * @param {{source: "live"|"demo"|"fallback"}} meta
  */
 function renderPlan(plan, { source }) {
+  lastRenderedPlan = plan;
   $("results").classList.add("show");
 
   const badge = $("sourceBadge");
@@ -187,6 +245,7 @@ function renderPlan(plan, { source }) {
 
   budgetTotal = computeExposureBudget(currentAqiBand, currentHousehold);
   budgetUsed = 0;
+  activityHistory = [];
   renderBudget();
 
   renderList("routineList", plan.routine, (item) => `
@@ -233,6 +292,19 @@ function renderBudget() {
   $("budgetBar").classList.toggle("over", over);
   $("budgetNote").textContent = `Today's AQI (${currentAqiBand}) gives a safe-outdoor budget of ${budgetTotal} minutes${currentHousehold.length ? ", halved for household vulnerability" : ""}.`;
 
+  const logEl = $("activityLog");
+  if (logEl) {
+    logEl.innerHTML = activityHistory
+      .map(
+        (item) => `
+      <div class="log-item">
+        <span>${escapeHtml(item.text)}</span>
+        <span class="log-item-time">${escapeHtml(item.time)}</span>
+      </div>`
+      )
+      .join("");
+  }
+
   checkOverBudget(remaining);
 }
 
@@ -253,12 +325,66 @@ function checkOverBudget(remaining) {
 
 $("logActivityBtn").addEventListener("click", () => {
   if (budgetTotal === 0) return; // no plan generated yet
-  const minutes = Number($("activitySelect").value) || 0;
+  const sel = $("activitySelect");
+  const minutes = Number(sel.value) || 0;
+  const text = sel.options[sel.selectedIndex]?.text || `${minutes} min`;
   budgetUsed += minutes;
+  activityHistory.push({
+    text,
+    minutes,
+    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  });
   renderBudget();
 });
 
 $("resetBudgetBtn").addEventListener("click", () => {
   budgetUsed = 0;
+  activityHistory = [];
   renderBudget();
 });
+
+// ---------- Scenario Presets & AQI Listeners ----------
+document.querySelectorAll(".preset-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    applyScenario(btn.dataset.scenario);
+  });
+});
+
+$("aqiSelect").addEventListener("change", (e) => {
+  updateAqiAdvisory(e.target.value);
+});
+
+// ---------- Copy & Print Plan ----------
+$("copyPlanBtn")?.addEventListener("click", async () => {
+  if (!lastRenderedPlan) return;
+  const city = $("cityInput").value.trim() || "Your City";
+  const lines = [
+    `*Saans AI Daily Plan — ${city}*`,
+    `Air Quality: ${currentAqiBand} | Safe Outdoor Budget: ${budgetTotal} min`,
+    ``,
+    `*Daily Low-Emission Routine:*`,
+    ...lastRenderedPlan.routine.map((r) => `• ${r.time}: ${r.activity} (${r.why})`),
+    ``,
+    `*Indoor Air Quality Hacks:*`,
+    ...lastRenderedPlan.indoorHacks.map((h) => `• ${h.hack} — ${h.benefit}`),
+    ``,
+    `*Sustainable Swaps:*`,
+    ...lastRenderedPlan.alternatives.map((a) => `• Instead of ${a.insteadOf} ➔ ${a.tryThis} (${a.impact})`),
+    ``,
+    `_Generated by Saans AI · Powered by Google Gemini 2.0 Flash_`
+  ];
+
+  try {
+    await navigator.clipboard.writeText(lines.join("\n"));
+    showToast("Plan copied for WhatsApp!");
+  } catch {
+    showToast("Plan generated above!");
+  }
+});
+
+$("printPlanBtn")?.addEventListener("click", () => {
+  window.print();
+});
+
+// Initial state
+updateAqiAdvisory($("aqiSelect").value);

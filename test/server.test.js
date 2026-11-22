@@ -135,3 +135,15 @@ test("static assets are served gzip-compressed when the client accepts it", asyn
   const text = await resp.text();
   assert.match(text, /DEMO_PLAN/);
 });
+
+test("GET /api/plan returns 405 Method Not Allowed", async () => {
+  const resp = await fetch(`${BASE}/api/plan`);
+  assert.equal(resp.status, 405);
+});
+
+test("GET / includes CPCB AQI bands and scenario presets", async () => {
+  const resp = await fetch(`${BASE}/`);
+  const html = await resp.text();
+  assert.match(html, /data-scenario="priya"/);
+  assert.match(html, /CPCB/i);
+});

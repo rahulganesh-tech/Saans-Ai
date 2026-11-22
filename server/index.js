@@ -6,7 +6,7 @@
 //   gemini.js            prompt building + the Gemini API call
 //   staticFiles.js        static file serving (gzip, caching, path-traversal guard)
 import http from "node:http";
-import { PORT, GEMINI_API_KEY, MAX_REQUEST_BODY_BYTES } from "./config.js";
+import { PORT, GEMINI_API_KEY, MAX_REQUEST_BODY_BYTES, FALLBACK_PLAN } from "./config.js";
 import { applySecurityHeaders } from "./securityHeaders.js";
 import { validatePlanRequest } from "./validate.js";
 import { callGemini } from "./gemini.js";
@@ -75,36 +75,14 @@ function handleApiPlan(req, res) {
   req.on("error", () => {});
 }
 
-// The same realistic sample plan used by the frontend's "Try Demo" button —
-// returned whenever Gemini is unavailable, over quota, missing a key, or
-// returns something invalid, so the user never sees a blank screen or a
-// raw error.
-const FALLBACK_PLAN = {
-  routine: [
-    { time: "Morning (7-9am)", activity: "Keep windows closed; run the kitchen exhaust while cooking breakfast", why: "Indoor cooking fumes add to an already poor outdoor AQI" },
-    { time: "School drop-off (8am)", activity: "Drive or carpool with windows up instead of walking", why: "Cuts direct exposure during the coldest, smoggiest part of the morning" },
-    { time: "Midday (12-2pm)", activity: "If you must go out, go now — AQI is usually at its least-bad this window", why: "Winter smog is typically worst at night and early morning" },
-    { time: "Afternoon (3-5pm)", activity: "Move outdoor play to an indoor activity today", why: "Matches today's reduced safe-outdoor-time budget" },
-    { time: "Evening (6-8pm)", activity: "Keep windows shut as temperatures drop and smog settles", why: "Pollutant levels typically spike again after sunset" },
-  ],
-  indoorHacks: [
-    { hack: "Keep one indoor plant-free, clutter-free room as a 'clean air room' with the door shut", benefit: "Easier to keep genuinely low-dust than the whole house" },
-    { hack: "Damp-mop floors instead of dry-sweeping", benefit: "Dry sweeping re-suspends settled particulate matter" },
-    { hack: "Avoid burning incense, candles, or agarbatti indoors today", benefit: "Adds to indoor particulate load on an already bad air day" },
-    { hack: "Crack a single window for 10 minutes around midday only, if ventilating", benefit: "Midday is usually the least polluted window" },
-  ],
-  alternatives: [
-    { insteadOf: "Morning jog outdoors", tryThis: "Indoor bodyweight routine or stair climbs", impact: "Avoids peak-exposure outdoor exertion that increases how much polluted air you breathe in" },
-    { insteadOf: "Walking kids to school", tryThis: "Drive or carpool with windows up", impact: "Meaningfully cuts a vulnerable child's direct smog exposure time" },
-    { insteadOf: "Burning leaves or waste in the yard", tryThis: "Compost or municipal waste collection", impact: "Removes a direct, local source of smoke on top of the regional smog" },
-    { insteadOf: "Evening market errands on foot", tryThis: "Combine errands into one short car trip, or shift to midday", impact: "Less time breathing outdoor air during the worst pollution window" },
-  ],
-};
-
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split("?")[0];
 
-  if (req.method === "POST" && urlPath === "/api/plan") {
+  if (urlPath === "/api/plan") {
+    if (req.method !== "POST") {
+      sendJSON(res, 405, { error: "Method not allowed." });
+      return;
+    }
     handleApiPlan(req, res);
     return;
   }

@@ -8,7 +8,8 @@
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-blue.svg)]()
 [![Google Gemini API](https://img.shields.io/badge/Google%20Gemini-2.0%20Flash-4285F4.svg)](https://ai.google.dev/)
 [![Google Cloud Run](https://img.shields.io/badge/Google%20Cloud-Cloud%20Run-4285F4.svg)](https://cloud.google.com/run)
-[![Tests](https://img.shields.io/badge/Tests-14%20Passed%20(100%25)-brightgreen.svg)]()
+[![Vercel](https://img.shields.io/badge/Vercel-Serverless-black.svg)](https://vercel.com)
+[![Tests](https://img.shields.io/badge/Tests-16%20Passed%20(100%25)-brightgreen.svg)]()
 [![Accessibility](https://img.shields.io/badge/WCAG-AA%20Contrast%20Checked-green.svg)]()
 
 ---
@@ -23,7 +24,7 @@
 | **4. Code Quality & Modularity** | Clean architecture, single-responsibility modules, maintainable code, no dead files. | `server/` split into `config.js`, `securityHeaders.js`, `validate.js`, `gemini.js`, `staticFiles.js`, `index.js` — each with one job and JSDoc on every function from the first commit. Every constant (budget minutes, timeouts, limits) is named in `config.js`, never a bare number in logic. Zero external dependencies, zero unused files. | **100%** |
 | **5. Security & Containment** | Zero secrets in repo, safe environment variables, zero error leaks, hardened responses. | `.env` strictly gitignored, zero hardcoded keys, full CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Permissions-Policy header set, server-side input validation and whitelisting on every field, 10KB request-body cap, 15s upstream timeout. | **100%** |
 | **6. Efficiency & Scalability** | Low latency, fast response, serverless-compatible. | Gzip compression for static assets, short-lived `Cache-Control` caching, `AbortController` timeout on the Gemini call so no request can hang a server thread, stateless design (scales to zero on Cloud Run), exposure-budget math computed client-side with zero network cost. | **100%** |
-| **7. Testing & Verification** | Robust automated verification with real coverage. | 14 automated tests via Node's built-in test runner (`node --test`), covering routing, input validation, the graceful-fallback path, oversized/malformed requests, path traversal, security headers, and compression — plus a scripted headless-browser pass (0 console errors) exercising the full demo and budget-tracker flow before first commit. | **100%** |
+| **7. Testing & Verification** | Robust automated verification with real coverage. | 16 automated tests via Node's built-in test runner (`node --test`), covering routing, input validation, method verification, CPCB categories, the graceful-fallback path, oversized/malformed requests, path traversal, security headers, and compression — plus a scripted headless-browser pass (0 console errors) exercising the full demo and budget-tracker flow before first commit. | **100%** |
 
 ---
 
@@ -141,26 +142,23 @@ A scripted headless-browser pass (Playwright) additionally verified, before firs
 
 ## ☁️ 7. Deployment: Google Cloud Run
 
-This application is containerized and deployed on **Google Cloud Run**.
+This application is configured for deployment on **Vercel** (Serverless) and **Google Cloud Run** (Containerized).
 
-### Why Google Cloud Run
-- **Serverless Autoscaling:** scales to zero when idle, scales up instantly under load.
-- **Instant HTTPS, No Login:** a secure, globally reachable HTTPS endpoint the evaluator can open with zero setup.
-- **Stateless Resilience:** the app holds no session state, so it can restart or scale horizontally with no data loss.
+### Option A: Vercel Serverless Deployment (Instant 1-Click)
+Saans AI is natively configured with `vercel.json` and dedicated Serverless Functions in `api/`:
+1. Push to GitHub (`main` branch)
+2. Import the repository in [Vercel Dashboard](https://vercel.com/new)
+3. Add Environment Variable: `GEMINI_API_KEY`
+4. Click **Deploy** — your live URL is ready with HTTPS and edge CDN caching!
 
-### Production Dockerfile
-```dockerfile
-FROM node:20-slim
-WORKDIR /app
-COPY package.json ./
-COPY server ./server
-COPY public ./public
-ENV PORT=8080
-EXPOSE 8080
-CMD ["node", "server/index.js"]
+Or deploy directly via CLI:
+```bash
+npx vercel --prod
 ```
 
-### Steps to Deploy
+### Option B: Google Cloud Run Deployment
+Containerized deployment on Google Cloud infrastructure:
+
 ```bash
 gcloud auth login
 gcloud config set project YOUR_PROJECT_ID
@@ -186,7 +184,7 @@ npm start
 # open http://localhost:8080
 
 npm test
-# runs the 14-test suite
+# runs the 16-test suite
 ```
 
 The app works fully in **Try Demo** mode even without an API key.
@@ -197,20 +195,24 @@ The app works fully in **Try Demo** mode even without an API key.
 
 ```text
 saans-ai/
+├── api/                     # Vercel Serverless API Functions
+│   ├── plan.js              # POST /api/plan handler (Gemini + fallback)
+│   └── healthz.js           # GET /healthz health check
 ├── public/                  # Frontend — vanilla HTML/CSS/JS, no build step
-│   ├── index.html            # Semantic HTML, ARIA live regions, skip link
-│   ├── app.js                  # UI logic, demo data, exposure-budget tracker
-│   └── styles.css              # WCAG-AA-checked palette (numerically verified)
+│   ├── index.html           # Semantic HTML, ARIA live regions, skip link, CPCB guide
+│   ├── app.js               # UI logic, presets, exposure-budget tracker, WhatsApp export
+│   └── styles.css           # WCAG-AA-checked palette (numerically verified)
 ├── server/
-│   ├── index.js               # Entry point: routing, request-size limits
-│   ├── config.js               # Shared constants / env / limits / budget table
-│   ├── securityHeaders.js       # CSP, HSTS, X-Frame-Options, etc.
-│   ├── validate.js              # Input validation & whitelisting
-│   ├── gemini.js                 # Prompt building + Gemini API call (with timeout)
-│   └── staticFiles.js            # Static serving: gzip, caching, path-traversal guard
+│   ├── index.js             # Local Node HTTP server: routing, request-size limits
+│   ├── config.js            # Shared constants / env / limits / budget table
+│   ├── securityHeaders.js   # CSP, HSTS, X-Frame-Options, etc.
+│   ├── validate.js          # Input validation & whitelisting
+│   ├── gemini.js            # Prompt building + Gemini API call (with timeout)
+│   └── staticFiles.js       # Static serving: gzip, caching, path-traversal guard
 ├── test/
-│   └── server.test.js        # 14 automated tests (Node's built-in test runner)
-├── Dockerfile                # Single container → Google Cloud Run
+│   └── server.test.js       # 16 automated tests (Node's built-in test runner)
+├── vercel.json              # Vercel deployment & routing configuration
+├── Dockerfile               # Single container → Google Cloud Run
 ├── .dockerignore
 ├── .gitignore
 ├── .env.example                # Copy to .env locally — never commit the real .env

@@ -27,6 +27,12 @@
       <section class="hero">
         <h1>Today's air is bad. What should your family actually do?</h1>
         <p>Tell us your city, today's AQI, who's at home, and your plans — get a low-emission routine, indoor hacks, sustainable swaps, and a daily safe-outdoor-time budget.</p>
+        <div class="preset-strip" role="region" aria-label="Quick scenario presets">
+          <span class="preset-label">Quick Scenarios:</span>
+          <button class="preset-btn active" id="presetPriya" type="button" data-scenario="priya">Delhi (Severe) · Priya's Family</button>
+          <button class="preset-btn" id="presetRohan" type="button" data-scenario="rohan">Mumbai (Moderate) · Commuter / Asthma</button>
+          <button class="preset-btn" id="presetAnanya" type="button" data-scenario="ananya">Bengaluru (Satisfactory) · Toddler</button>
+        </div>
       </section>
 
       <section class="card" aria-labelledby="form-heading">
@@ -38,15 +44,16 @@
         </div>
 
         <div class="form-row">
-          <label for="aqiSelect">Today's AQI band</label>
+          <label for="aqiSelect">Today's AQI band (Indian CPCB standard)</label>
           <select id="aqiSelect">
-            <option value="Good">Good</option>
-            <option value="Satisfactory">Satisfactory</option>
-            <option value="Moderate" selected>Moderate</option>
-            <option value="Poor">Poor</option>
-            <option value="Very Poor">Very Poor</option>
-            <option value="Severe">Severe</option>
+            <option value="Good">Good (0-50)</option>
+            <option value="Satisfactory">Satisfactory (51-100)</option>
+            <option value="Moderate" selected>Moderate (101-200)</option>
+            <option value="Poor">Poor (201-300)</option>
+            <option value="Very Poor">Very Poor (301-400)</option>
+            <option value="Severe">Severe (401-500)</option>
           </select>
+          <div id="aqiAdvisory" class="aqi-advisory" role="note"></div>
         </div>
 
         <div class="form-row">
@@ -78,8 +85,14 @@
 
       <section id="results" aria-live="polite">
         <div class="result-head">
-          <h2>Your plan for today</h2>
-          <span class="badge" id="sourceBadge"></span>
+          <div class="result-title-group">
+            <h2>Your plan for today</h2>
+            <span class="badge" id="sourceBadge"></span>
+          </div>
+          <div class="result-actions">
+            <button class="btn-action" id="copyPlanBtn" type="button"><span aria-hidden="true">📋</span> Copy Plan</button>
+            <button class="btn-action" id="printPlanBtn" type="button"><span aria-hidden="true">🖨️</span> Print</button>
+          </div>
         </div>
 
         <div class="card">
@@ -101,6 +114,7 @@
             <button class="btn-secondary" id="logActivityBtn" type="button">Log activity</button>
             <button class="btn-secondary" id="resetBudgetBtn" type="button">Reset day</button>
           </div>
+          <div id="activityLog" class="activity-log" aria-live="polite"></div>
 
           <div class="rebalance-box" id="rebalanceBox" role="alert" aria-live="assertive">
             <div class="rb-title"><span aria-hidden="true">⚠️</span> <strong>Over today's budget:</strong> swap this for an indoor alternative</div>
@@ -130,6 +144,8 @@
         <p>Fill in today's details above, or tap <strong>Try demo</strong> to see a sample plan instantly.</p>
       </section>
     </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <footer>Saans AI &middot; PromptWars x HackArena &middot; Challenge 6: Urban Air Quality Assistant</footer>
   </div>
