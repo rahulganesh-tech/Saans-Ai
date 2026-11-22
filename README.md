@@ -177,8 +177,8 @@ gcloud run deploy saans-ai \
 ## 💻 8. Local Installation & Development
 
 ```bash
-git clone https://github.com/rahulganesh-tech/Saans_AI.git
-cd Saans_AI
+git clone https://github.com/rahulganesh-tech/Saans-Ai.git
+cd Saans-Ai
 cp .env.example .env
 # edit .env and add GEMINI_API_KEY (free key: aistudio.google.com/apikey)
 
