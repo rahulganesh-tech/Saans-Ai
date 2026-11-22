@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Saans AI — Winter Smog Daily Planner</title>
+  <meta name="description" content="A GenAI assistant that helps families navigate severe winter smog with a low-emission daily routine, indoor air-quality hacks, sustainable swaps, and a daily safe-exposure budget." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%8C%AC%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">🌬️</div>
+        <div>
+          <div class="name">Saans AI</div>
+          <div class="tag">Winter smog daily planner</div>
+        </div>
+      </div>
+      <button class="demo-btn" id="demoBtn" type="button"><span aria-hidden="true">✨</span> Try demo (no key needed)</button>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <h1>Today's air is bad. What should your family actually do?</h1>
+        <p>Tell us your city, today's AQI, who's at home, and your plans — get a low-emission routine, indoor hacks, sustainable swaps, and a daily safe-outdoor-time budget.</p>
+      </section>
+
+      <section class="card" aria-labelledby="form-heading">
+        <h2 id="form-heading" class="section-title">Today's details</h2>
+
+        <div class="form-row">
+          <label for="cityInput">City</label>
+          <input id="cityInput" type="text" placeholder="e.g. Delhi" maxlength="80" />
+        </div>
+
+        <div class="form-row">
+          <label for="aqiSelect">Today's AQI band</label>
+          <select id="aqiSelect">
+            <option value="Good">Good</option>
+            <option value="Satisfactory">Satisfactory</option>
+            <option value="Moderate" selected>Moderate</option>
+            <option value="Poor">Poor</option>
+            <option value="Very Poor">Very Poor</option>
+            <option value="Severe">Severe</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <span class="group-label" id="householdLabel">Anyone in your household who needs extra care?</span>
+          <div class="chip-row" role="group" aria-labelledby="householdLabel">
+            <button class="chip" data-flag="Infant or toddler" aria-pressed="false" type="button"><span aria-hidden="true">👶</span> Infant/toddler</button>
+            <button class="chip" data-flag="School-age children" aria-pressed="false" type="button"><span aria-hidden="true">🎒</span> School-age kids</button>
+            <button class="chip" data-flag="Elderly member" aria-pressed="false" type="button"><span aria-hidden="true">🧓</span> Elderly</button>
+            <button class="chip" data-flag="Asthma or respiratory condition" aria-pressed="false" type="button"><span aria-hidden="true">🫁</span> Asthma/respiratory</button>
+            <button class="chip" data-flag="Pregnant member" aria-pressed="false" type="button"><span aria-hidden="true">🤰</span> Pregnant</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="descInput">Today's plans, in your own words</label>
+          <textarea id="descInput" rows="3" maxlength="2000" placeholder="e.g. Kids have school, I usually jog in the morning, planning a market trip in the evening..."></textarea>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="generateBtn" type="button">Get today's plan</button>
+          <span class="hint">Works instantly with Try Demo — no API key, no login.</span>
+        </div>
+
+        <div class="loading" id="loading" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div> Building your plan…
+        </div>
+        <div class="error-box" id="errorBox" role="alert" aria-live="assertive"></div>
+      </section>
+
+      <section id="results" aria-live="polite">
+        <div class="result-head">
+          <h2>Your plan for today</h2>
+          <span class="badge" id="sourceBadge"></span>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title">Daily safe-outdoor-time budget</h3>
+          <div class="budget-total">
+            <span class="amt" id="budgetRemaining">--</span>
+            <span class="label">minutes remaining today</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="budgetBar"></div></div>
+          <p class="hint" id="budgetNote"></p>
+
+          <div class="log-row">
+            <select id="activitySelect">
+              <option value="30">Outdoor play — 30 min</option>
+              <option value="20">School commute on foot — 20 min</option>
+              <option value="45">Outdoor exercise — 45 min</option>
+              <option value="15">Market errand — 15 min</option>
+            </select>
+            <button class="btn-secondary" id="logActivityBtn" type="button">Log activity</button>
+            <button class="btn-secondary" id="resetBudgetBtn" type="button">Reset day</button>
+          </div>
+
+          <div class="rebalance-box" id="rebalanceBox" role="alert" aria-live="assertive">
+            <div class="rb-title"><span aria-hidden="true">⚠️</span> <strong>Over today's budget:</strong> swap this for an indoor alternative</div>
+            <p id="rebalanceText"></p>
+          </div>
+          <p class="hint">General guidance based on published air-quality advisories — not medical advice. If anyone has a respiratory condition, follow your doctor's guidance.</p>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title">Low-emission routine</h3>
+          <div id="routineList"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title">Indoor air-quality hacks</h3>
+          <div id="hacksList"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title">Sustainable swaps</h3>
+          <div id="altsList"></div>
+        </div>
+      </section>
+
+      <section class="empty-state" id="emptyState">
+        <div class="big" aria-hidden="true">🏠</div>
+        <p>Fill in today's details above, or tap <strong>Try demo</strong> to see a sample plan instantly.</p>
+      </section>
+    </main>
+
+    <footer>Saans AI &middot; PromptWars x HackArena &middot; Challenge 6: Urban Air Quality Assistant</footer>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
